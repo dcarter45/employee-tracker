@@ -13,7 +13,8 @@ const connection = mysql2.createConnection({
 
 const addEmployeeQuestions = ['What is the first name?', 'What is the last name?', 'What is their role?', 'Who is their manager?'];
 const roleQuery = 'SELECT r.id AS value,  CONCAT(r.title, ", " , d.name) AS name from role r LEFT JOIN department d ON d.id = r.department_id'
-const mgrQuery = 'SELECT CONCAT (e.first_name," ",e.last_name) AS full_name, r.title, d.department_name FROM employees e INNER JOIN roles r ON r.id = e.role_id INNER JOIN departments d ON d.id = r.department_id WHERE department_name = "Management";'
+// const mgrQuery = 'SELECT CONCAT (e.first_name," ",e.last_name) AS full_name, r.title, d.department_name FROM employees e INNER JOIN roles r ON r.id = e.role_id INNER JOIN departments d ON d.id = r.department_id WHERE department_name = "Management";'
+const managerQuery='SELECT e.id AS value,CONCAT(e.first_name, ", " , last_name) AS name from employee e'
 
 
 
@@ -104,6 +105,7 @@ function viewAllDepartments() {
 
 const addEmployee = () => {
   connection.query(roleQuery, (err, results) => {
+    connection.query(managerQuery, (err, managerResults) => {
     console.log(err, results);
       inquirer.prompt([
           {
@@ -120,32 +122,44 @@ const addEmployee = () => {
           {
               name: 'role',
               type: 'list',
-              choices: function () {
-                  let choiceArray = results[0].map(choice => choice.title);
-                  return choiceArray;
-              },
+              choices: results
+              ,
               message: addEmployeeQuestions[2]
 
           },
+          { name:'hasManager',
+            type: 'list',
+           
+            message:`do they have a manager?`,
+            choices: [`yes`,`no`]
+          },
           {
               name: 'manager',
-              type: 'list',
-              choices: function () {
-                  let choiceArray = results[1].map(choice => choice.full_name);
-                  return choiceArray;
+              default:null,
+              when: (answers)=>{
+                if (answers.hasManager=== `yes`){
+                  return true
+                }else{
+                  return false
+                }
               },
+              type: 'list',
+              choices: managerResults,
               message: addEmployeeQuestions[3]
 
             }
       ]).then((answer) => {
-          connection.query(
-              `INSERT INTO employees(first_name, last_name, role_id, manager_id) VALUES(?, ?, 
-              (SELECT id FROM role WHERE title = ? ), 
-              (SELECT id FROM (SELECT id FROM employees WHERE CONCAT(first_name," ",last_name) = ? ) AS tmptable))`, [answer.first_Name, answer.last_Name, answer.role_id, answer.manager_id]
-          )
+        console.log(answer);
+        connection.query("INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES(?,?,?,?)",
+        [answer.first_Name, answer.last_Name, answer.role, answer.manager], 
+        function (error, results) {
+          
+          if (error) throw error;
+          console.log(`ADDED EMPLOYEE`);
           askQuestions();
+        })
       })
-})};
+})})};
 
 
 function viewAllEmployees() {
