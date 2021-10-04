@@ -163,7 +163,7 @@ const addEmployee = () => {
 
 
 function viewAllEmployees() {
-  connection.query("SELECT * FROM department", function (error, results) {
+  connection.query("SELECT * FROM employee", function (error, results) {
     if (error) throw error;
     console.table(results);
     askQuestions();
@@ -235,13 +235,77 @@ function addRole() {
   );
 }
 
+function viewAllRoles() {
+  connection.query("SELECT * FROM role", function (error, results) {
+    if (error) throw error;
+    console.table(results);
+    askQuestions();
+  });
+}
 
-function updateEmployeeRole(){
-    connection.query("SELECT * FROM ", function (error, results) {
-        if (error) throw error;
-        console.table(results)
-        askQuestions();
-      });
+
+const updateEmployeeRole = () => {
+// grab all employees names
+// grab all roles names
+//select from list on both
+// put selection into new role
+
+  //find all employees
+  connection.query('SELECT * FROM employee', function(err, empResults) {
+
+      //find all the roles!
+      connection.query('SELECT * FROM role', function(err, roleResults) {
+
+          // do a for loop grab just the role title strings and put in a new array
+          const roleTitle = [];
+          for (let i = 0; i < roleResults.length; i++) {
+              roleTitle.push(roleResults[i].title) 
+          }
+          // do a for loop grab just the emp name strings and put in a new array
+          const employeeName = [];
+          for (let i = 0; i < empResults.length; i++) {
+              employeeName.push(empResults[i].first_name + empResults[i].last_name)                
+          }
+          
+          inquirer.prompt ([
+              {
+                  type: 'list',
+                  name: 'employee_name',
+                  message: 'Which employee do you want to update?',
+                  choices: employeeName
+              },
+              {
+                  type: 'list',
+                  name: 'role_title',
+                  message: 'What is their new role?',
+                  choices: roleTitle
+              }
+          ]).then( function(answers) {
+              var roleId;
+              for (let i = 0; i < roleResults.length; i++) {
+                  if (roleResults[i].title === answers.role_title) {
+                      roleId = roleResults[i].id
+                  }
+
+              }
+              var emplId;
+              for (let i = 0; i < empResults.length; i++) {
+                  if (empResults[i].first_name + empResults[i].last_name === answers.employee_name) {
+                      emplId = empResults[i].id
+                  }
+
+              }
+
+              connection.query(`UPDATE employee SET role_id = ? WHERE id = ?`, [roleId, emplId], function(error, results) {
+                  
+                      if (error) throw error;
+                      askQuestions()
+              })
+          })
+      })
+  })
+
+
 }
 
 askQuestions();
